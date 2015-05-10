@@ -12,5 +12,6 @@
     <string name="custom_connection">Custom Connection</string>
     <string name="connect">Connect</string>
     <string name="cancel">Cancel</string>
+    <string name="custom">Custom</string>
 
 </resources>

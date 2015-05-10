@@ -18,19 +18,19 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="About"
+                android:text="@string/about"
                 android:id="@+id/about_button" />
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Custom"
+                android:text="@string/custom"
                 android:id="@+id/custom_button" />
 
             <Button
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:text="Connect"
+                android:text="@string/connect"
                 android:id="@+id/connect_button" />
 
         </LinearLayout>
