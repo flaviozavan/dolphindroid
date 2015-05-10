@@ -2,6 +2,7 @@ package com.nebososo.dolphindroid;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -23,7 +25,6 @@ import java.util.Vector;
 
 
 public class ConnectionActivity extends Activity {
-
     private Button connect_button;
     private Button about_button;
     private Button custom_button;
@@ -31,6 +32,10 @@ public class ConnectionActivity extends Activity {
     private ArrayList<String> server_names = new ArrayList<String>();
     private ActiveServersList activeServers = new ActiveServersList();
     private Vector<UdpwiiServer> localActiveServersList = new Vector<UdpwiiServer>();
+    private Timer maintenanceTimer;
+    private byte[] buffer = new byte[512];
+    private DatagramSocket broadcastSocket;
+    private DatagramPacket broadcastPacket = new DatagramPacket(buffer, buffer.length);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,36 +81,72 @@ public class ConnectionActivity extends Activity {
             }
         });
 
+        final Intent controllerIntent = new Intent(this, ControllerActivity.class);
         connect_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                startActivity(controllerIntent);
+                finish();
             }
         });
+
+        try {
+            broadcastSocket = new DatagramSocket(4431);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        try {
+            /* Hack for simulating a non-blocking socket */
+            broadcastSocket.setSoTimeout(1);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
 
         TimerTask maintainServerListTask = new TimerTask() {
             @Override
             public void run() {
                 activeServers.cleanup();
 
-                 runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (activeServers.getServerListIfChanged(localActiveServersList)) {
-                            server_names.clear();
-                            for (int i = 0; i < localActiveServersList.size(); i++) {
-                                server_names.add(localActiveServersList.get(i).name
-                                        + " " + localActiveServersList.get(i).index);
-                            }
-                            server_names_adapter.notifyDataSetChanged();
-                        }
+                for (;;) {
+                    try {
+                        broadcastSocket.receive(broadcastPacket);
+                    } catch (SocketTimeoutException e) {
+                        break;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        break;
                     }
+                    if (UdpwiiServer.validatePacket(broadcastPacket)) {
+                        activeServers.addServer(new UdpwiiServer(broadcastPacket));
+                    }
+                }
+
+                 runOnUiThread(new Runnable() {
+                     @Override
+                     public void run() {
+                         if (activeServers.getServerListIfChanged(localActiveServersList)) {
+                             server_names.clear();
+                             for (int i = 0; i < localActiveServersList.size(); i++) {
+                                 server_names.add(localActiveServersList.get(i).name
+                                         + " " + localActiveServersList.get(i).index);
+                             }
+                             server_names_adapter.notifyDataSetChanged();
+                         }
+                     }
                  });
             }
         };
-        Timer maintenanceTimer = new Timer();
+        maintenanceTimer = new Timer();
 
-        new Thread(new BroadcastListener(activeServers)).start();
-        maintenanceTimer.scheduleAtFixedRate(maintainServerListTask, 1000, 1000);
+        maintenanceTimer.scheduleAtFixedRate(maintainServerListTask, 200, 200);
+    }
+
+    @Override
+    protected void onDestroy() {
+        maintenanceTimer.cancel();
+        broadcastSocket.close();
+        super.onDestroy();
     }
 }
 
@@ -168,38 +209,8 @@ class UdpwiiServer {
         timestamp = System.currentTimeMillis();
         address = packet.getAddress().toString();
     }
-}
 
-class BroadcastListener implements Runnable {
-    private byte[] buffer = new byte[512];
-    private DatagramSocket socket;
-    private DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    private ActiveServersList activeServers;
-
-    public BroadcastListener(ActiveServersList as) {
-        activeServers = as;
-    }
-
-    public void run() {
-        try {
-            socket = new DatagramSocket(4431);
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-
-        for (;;) {
-            try {
-                socket.receive(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (validatePacket()) {
-                activeServers.addServer(new UdpwiiServer(packet));
-            }
-        }
-    }
-
-    private boolean validatePacket() {
+    static public boolean validatePacket(DatagramPacket packet) {
         byte[] pbuf = packet.getData();
 
         if (packet.getLength() < 8) {

@@ -13,5 +13,8 @@
     <string name="connect">Connect</string>
     <string name="cancel">Cancel</string>
     <string name="custom">Custom</string>
+    <string name="title_activity_controller">ControllerActivity</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
 
 </resources>
