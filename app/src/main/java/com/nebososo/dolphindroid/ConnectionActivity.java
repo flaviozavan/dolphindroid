@@ -1,6 +1,7 @@
 package com.nebososo.dolphindroid;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -23,6 +24,7 @@ import java.util.Vector;
 public class ConnectionActivity extends Activity {
 
     private Button connect_button;
+    private Button about_button;
     private ListView server_list_view;
     private ArrayList<String> server_names = new ArrayList<String>();
     private ActiveServersList activeServers = new ActiveServersList();
@@ -35,10 +37,23 @@ public class ConnectionActivity extends Activity {
 
         server_list_view = (ListView) findViewById(R.id.server_list_view);
         connect_button = (Button) findViewById(R.id.connect_button);
+        about_button = (Button) findViewById(R.id.about_button);
 
         final ArrayAdapter<String> server_names_adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, server_names);
         server_list_view.setAdapter(server_names_adapter);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage(R.string.about_content);
+        alertDialogBuilder.setTitle(R.string.about);
+        final AlertDialog aboutDialog = alertDialogBuilder.create();
+
+        about_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                aboutDialog.show();
+            }
+        });
 
         connect_button.setOnClickListener(new View.OnClickListener() {
             @Override

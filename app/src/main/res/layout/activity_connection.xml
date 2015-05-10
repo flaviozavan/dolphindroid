@@ -18,6 +18,12 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="About"
+                android:id="@+id/about_button" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="Custom"
                 android:id="@+id/custom_button" />
 
