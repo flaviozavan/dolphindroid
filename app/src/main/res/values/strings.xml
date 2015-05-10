@@ -7,5 +7,10 @@
         This application is free software,
         for more information and access to the source code, visit
         http://github.com/nebososo/dolphindroid</string>
+    <string name="server_ip">Server IP</string>
+    <string name="server_port">Server Port</string>
+    <string name="custom_connection">Custom Connection</string>
+    <string name="connect">Connect</string>
+    <string name="cancel">Cancel</string>
 
 </resources>

@@ -3,6 +3,7 @@ package com.nebososo.dolphindroid;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,6 +26,7 @@ public class ConnectionActivity extends Activity {
 
     private Button connect_button;
     private Button about_button;
+    private Button custom_button;
     private ListView server_list_view;
     private ArrayList<String> server_names = new ArrayList<String>();
     private ActiveServersList activeServers = new ActiveServersList();
@@ -38,20 +40,39 @@ public class ConnectionActivity extends Activity {
         server_list_view = (ListView) findViewById(R.id.server_list_view);
         connect_button = (Button) findViewById(R.id.connect_button);
         about_button = (Button) findViewById(R.id.about_button);
+        custom_button = (Button) findViewById(R.id.custom_button);
 
         final ArrayAdapter<String> server_names_adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1, server_names);
         server_list_view.setAdapter(server_names_adapter);
 
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-        alertDialogBuilder.setMessage(R.string.about_content);
-        alertDialogBuilder.setTitle(R.string.about);
-        final AlertDialog aboutDialog = alertDialogBuilder.create();
+        AlertDialog.Builder aboutDialogBuilder = new AlertDialog.Builder(this);
+        aboutDialogBuilder.setMessage(R.string.about_content);
+        aboutDialogBuilder.setTitle(R.string.about);
+        aboutDialogBuilder.setNegativeButton(R.string.cancel, null);
+        final AlertDialog aboutDialog = aboutDialogBuilder.create();
+
+        LayoutInflater inflater = getLayoutInflater();
+        View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
+
+        AlertDialog.Builder customDialogBuilder = new AlertDialog.Builder(this);
+        customDialogBuilder.setTitle(R.string.custom_connection);
+        customDialogBuilder.setNegativeButton(R.string.cancel, null);
+        customDialogBuilder.setPositiveButton(R.string.connect, null);
+        customDialogBuilder.setView(customConnectionView);
+        final AlertDialog customDialog = customDialogBuilder.create();
 
         about_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 aboutDialog.show();
+            }
+        });
+
+        custom_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                customDialog.show();
             }
         });
 
