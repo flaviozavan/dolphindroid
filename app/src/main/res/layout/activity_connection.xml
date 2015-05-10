@@ -10,6 +10,13 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent">
 
+        <RadioGroup
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/server_group"
+            android:focusableInTouchMode="false"></RadioGroup>
+
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="fill_parent"
@@ -34,12 +41,6 @@
                 android:id="@+id/connect_button" />
 
         </LinearLayout>
-
-        <ListView
-            android:layout_width="wrap_content"
-            android:layout_height="fill_parent"
-            android:id="@+id/server_list_view"
-            android:layout_alignParentStart="true" />
 
     </LinearLayout>
 

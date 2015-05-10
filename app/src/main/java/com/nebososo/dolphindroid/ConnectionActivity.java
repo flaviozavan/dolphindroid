@@ -2,6 +2,7 @@ package com.nebososo.dolphindroid;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -9,6 +10,8 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -25,13 +28,12 @@ import java.util.Vector;
 
 
 public class ConnectionActivity extends Activity {
-    private Button connect_button;
-    private Button about_button;
-    private Button custom_button;
-    private ListView server_list_view;
-    private ArrayList<String> server_names = new ArrayList<String>();
+    private Button connectButton;
+    private Button aboutButton;
+    private Button customButton;
+    private RadioGroup serverGroup;
     private ActiveServersList activeServers = new ActiveServersList();
-    private Vector<UdpwiiServer> localActiveServersList = new Vector<UdpwiiServer>();
+    private Map<Integer, UdpwiiServer> localActiveServersList = new TreeMap<>();
     private Timer maintenanceTimer;
     private byte[] buffer = new byte[512];
     private DatagramSocket broadcastSocket;
@@ -42,14 +44,10 @@ public class ConnectionActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connection);
 
-        server_list_view = (ListView) findViewById(R.id.server_list_view);
-        connect_button = (Button) findViewById(R.id.connect_button);
-        about_button = (Button) findViewById(R.id.about_button);
-        custom_button = (Button) findViewById(R.id.custom_button);
-
-        final ArrayAdapter<String> server_names_adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1, server_names);
-        server_list_view.setAdapter(server_names_adapter);
+        serverGroup = (RadioGroup) findViewById(R.id.server_group);
+        connectButton = (Button) findViewById(R.id.connect_button);
+        aboutButton = (Button) findViewById(R.id.about_button);
+        customButton = (Button) findViewById(R.id.custom_button);
 
         AlertDialog.Builder aboutDialogBuilder = new AlertDialog.Builder(this);
         aboutDialogBuilder.setMessage(R.string.about_content);
@@ -67,14 +65,14 @@ public class ConnectionActivity extends Activity {
         customDialogBuilder.setView(customConnectionView);
         final AlertDialog customDialog = customDialogBuilder.create();
 
-        about_button.setOnClickListener(new View.OnClickListener() {
+        aboutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 aboutDialog.show();
             }
         });
 
-        custom_button.setOnClickListener(new View.OnClickListener() {
+        customButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 customDialog.show();
@@ -82,7 +80,7 @@ public class ConnectionActivity extends Activity {
         });
 
         final Intent controllerIntent = new Intent(this, ControllerActivity.class);
-        connect_button.setOnClickListener(new View.OnClickListener() {
+        connectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(controllerIntent);
@@ -102,6 +100,7 @@ public class ConnectionActivity extends Activity {
             e.printStackTrace();
         }
 
+        final Context currentContext = this;
 
         TimerTask maintainServerListTask = new TimerTask() {
             @Override
@@ -126,19 +125,30 @@ public class ConnectionActivity extends Activity {
                      @Override
                      public void run() {
                          if (activeServers.getServerListIfChanged(localActiveServersList)) {
-                             server_names.clear();
-                             for (int i = 0; i < localActiveServersList.size(); i++) {
-                                 server_names.add(localActiveServersList.get(i).name
-                                         + " " + localActiveServersList.get(i).index);
+                             int checkedId = serverGroup.getCheckedRadioButtonId();
+                             boolean removed = true;
+                             serverGroup.removeAllViews();
+                             for (Map.Entry<Integer, UdpwiiServer> entry
+                                     : localActiveServersList.entrySet()){
+                                 RadioButton serverRadio = new RadioButton(currentContext);
+                                 serverRadio.setText(entry.getValue().name
+                                         + " " + entry.getValue().index);
+                                 serverRadio.setId(entry.getValue().id);
+                                 serverGroup.addView(serverRadio);
+                                 if (entry.getValue().id == checkedId) {
+                                     removed = false;
+                                 }
                              }
-                             server_names_adapter.notifyDataSetChanged();
+                             serverGroup.clearCheck();
+                             if (!removed) {
+                                 serverGroup.check(checkedId);
+                             }
                          }
                      }
                  });
             }
         };
         maintenanceTimer = new Timer();
-
         maintenanceTimer.scheduleAtFixedRate(maintainServerListTask, 200, 200);
     }
 
@@ -175,15 +185,13 @@ class ActiveServersList {
         }
     }
 
-    public synchronized boolean getServerListIfChanged(Vector<UdpwiiServer> servers) {
+    public synchronized boolean getServerListIfChanged(Map<Integer, UdpwiiServer> servers) {
         if (!changed) {
             return false;
         }
 
         servers.clear();
-        for (Map.Entry<Integer, UdpwiiServer> entry : activeServers.entrySet()){
-            servers.add(entry.getValue());
-        }
+        servers.putAll(activeServers);
 
         changed = false;
         return true;
