@@ -31,5 +31,6 @@
     <string name="dr">D+R</string>
     <string name="dl">D+L</string>
     <string name="ul">U+L</string>
+    <string name="presses_to_go">" more back button presses to disconnect"</string>
 
 </resources>
