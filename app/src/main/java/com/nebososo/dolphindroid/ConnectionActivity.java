@@ -3,6 +3,7 @@ package com.nebososo.dolphindroid;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -12,6 +13,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.EditText;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -56,13 +58,22 @@ public class ConnectionActivity extends Activity {
         final AlertDialog aboutDialog = aboutDialogBuilder.create();
 
         LayoutInflater inflater = getLayoutInflater();
-        View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
+        final View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
 
         AlertDialog.Builder customDialogBuilder = new AlertDialog.Builder(this);
         customDialogBuilder.setTitle(R.string.custom_connection);
         customDialogBuilder.setNegativeButton(R.string.cancel, null);
-        customDialogBuilder.setPositiveButton(R.string.connect, null);
-        customDialogBuilder.setView(customConnectionView);
+        customDialogBuilder.setPositiveButton(R.string.connect, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                EditText ip = (EditText) customConnectionView.findViewById(R.id.server_ip);
+                EditText port = (EditText) customConnectionView.findViewById(R.id.server_port);
+                if (ip.getText().length() > 0 && port.getText().length() > 0) {
+                    switchToController(ip.getText().toString(),
+                            Integer.parseInt(port.getText().toString()));
+                }
+            }
+        }).setView(customConnectionView);
         final AlertDialog customDialog = customDialogBuilder.create();
 
         aboutButton.setOnClickListener(new View.OnClickListener() {
@@ -79,17 +90,13 @@ public class ConnectionActivity extends Activity {
             }
         });
 
-        final Intent controllerIntent = new Intent(this, ControllerActivity.class);
         connectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int chosenID = serverGroup.getCheckedRadioButtonId();
                 if (chosenID != -1) {
                     UdpwiiServer chosenServer = localActiveServersList.get(chosenID);
-                    controllerIntent.putExtra("address", chosenServer.address);
-                    controllerIntent.putExtra("port", chosenServer.port);
-                    startActivity(controllerIntent);
-                    finish();
+                    switchToController(chosenServer.address, chosenServer.port);
                 }
             }
         });
@@ -163,6 +170,14 @@ public class ConnectionActivity extends Activity {
         maintenanceTimer.cancel();
         broadcastSocket.close();
         super.onDestroy();
+    }
+
+    private void switchToController(String address, int port) {
+        Intent controllerIntent = new Intent(this, ControllerActivity.class);
+        controllerIntent.putExtra("address", address);
+        controllerIntent.putExtra("port", port);
+        startActivity(controllerIntent);
+        finish();
     }
 }
 
