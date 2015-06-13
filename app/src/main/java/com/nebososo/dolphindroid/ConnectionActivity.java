@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,6 +41,7 @@ public class ConnectionActivity extends Activity {
     private byte[] buffer = new byte[512];
     private DatagramSocket broadcastSocket;
     private DatagramPacket broadcastPacket = new DatagramPacket(buffer, buffer.length);
+    private SharedPreferences settings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +53,8 @@ public class ConnectionActivity extends Activity {
         aboutButton = (Button) findViewById(R.id.about_button);
         customButton = (Button) findViewById(R.id.custom_button);
 
+        settings = getPreferences(MODE_PRIVATE);
+
         AlertDialog.Builder aboutDialogBuilder = new AlertDialog.Builder(this);
         aboutDialogBuilder.setMessage(R.string.about_content);
         aboutDialogBuilder.setTitle(R.string.about);
@@ -59,6 +63,14 @@ public class ConnectionActivity extends Activity {
 
         LayoutInflater inflater = getLayoutInflater();
         final View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
+        final EditText customServerIP =
+                (EditText) customConnectionView.findViewById(R.id.server_ip);
+        final EditText customServerPort =
+                (EditText) customConnectionView.findViewById(R.id.server_port);
+
+        customServerIP.setText(settings.getString("customServerIP", ""));
+        int storedCustomPort = settings.getInt("customServerPort", 0);
+        customServerPort.setText(storedCustomPort > 0? Integer.toString(storedCustomPort) : "");
 
         AlertDialog.Builder customDialogBuilder = new AlertDialog.Builder(this);
         customDialogBuilder.setTitle(R.string.custom_connection);
@@ -66,11 +78,10 @@ public class ConnectionActivity extends Activity {
         customDialogBuilder.setPositiveButton(R.string.connect, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                EditText ip = (EditText) customConnectionView.findViewById(R.id.server_ip);
-                EditText port = (EditText) customConnectionView.findViewById(R.id.server_port);
-                if (ip.getText().length() > 0 && port.getText().length() > 0) {
-                    switchToController(ip.getText().toString(),
-                            Integer.parseInt(port.getText().toString()));
+                if (customServerIP.getText().length() > 0
+                        && customServerPort.getText().length() > 0) {
+                    switchToController(customServerIP.getText().toString(),
+                            Integer.parseInt(customServerPort.getText().toString()));
                 }
             }
         }).setView(customConnectionView);
@@ -173,6 +184,11 @@ public class ConnectionActivity extends Activity {
     }
 
     private void switchToController(String address, int port) {
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString("customServerIP", address);
+        editor.putInt("customServerPort", port);
+        editor.commit();
+
         Intent controllerIntent = new Intent(this, ControllerActivity.class);
         controllerIntent.putExtra("address", address);
         controllerIntent.putExtra("port", port);
