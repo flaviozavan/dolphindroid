@@ -28,6 +28,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class ConnectionActivity extends Activity {
@@ -37,7 +41,8 @@ public class ConnectionActivity extends Activity {
     private RadioGroup serverGroup;
     private ActiveServersList activeServers = new ActiveServersList();
     private Map<Integer, UdpwiiServer> localActiveServersList = new TreeMap<>();
-    private Timer maintenanceTimer;
+    private ScheduledExecutorService maintenanceExecutor =
+            Executors.newSingleThreadScheduledExecutor();
     private byte[] buffer = new byte[512];
     private DatagramSocket broadcastSocket;
     private DatagramPacket broadcastPacket = new DatagramPacket(buffer, buffer.length);
@@ -126,7 +131,7 @@ public class ConnectionActivity extends Activity {
 
         final Context currentContext = this;
 
-        TimerTask maintainServerListTask = new TimerTask() {
+        Runnable maintainServerListRunnable = new Runnable() {
             @Override
             public void run() {
                 activeServers.cleanup();
@@ -172,13 +177,18 @@ public class ConnectionActivity extends Activity {
                  });
             }
         };
-        maintenanceTimer = new Timer();
-        maintenanceTimer.scheduleAtFixedRate(maintainServerListTask, 200, 200);
+        maintenanceExecutor.scheduleAtFixedRate(maintainServerListRunnable, 200, 200,
+                TimeUnit.MILLISECONDS);
     }
 
     @Override
     protected void onDestroy() {
-        maintenanceTimer.cancel();
+        maintenanceExecutor.shutdown();
+        try {
+            maintenanceExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         broadcastSocket.close();
         super.onDestroy();
     }
