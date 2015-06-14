@@ -81,7 +81,7 @@ public class ConnectionActivity extends Activity {
                 if (customServerAddress.getText().length() > 0
                         && customServerPort.getText().length() > 0) {
                     switchToController(customServerAddress.getText().toString(),
-                            Integer.parseInt(customServerPort.getText().toString()));
+                            Integer.parseInt(customServerPort.getText().toString()), true);
                 }
             }
         }).setView(customConnectionView);
@@ -107,7 +107,7 @@ public class ConnectionActivity extends Activity {
                 int chosenID = serverGroup.getCheckedRadioButtonId();
                 if (chosenID != -1) {
                     UdpwiiServer chosenServer = localActiveServersList.get(chosenID);
-                    switchToController(chosenServer.address, chosenServer.port);
+                    switchToController(chosenServer.address, chosenServer.port, false);
                 }
             }
         });
@@ -183,11 +183,13 @@ public class ConnectionActivity extends Activity {
         super.onDestroy();
     }
 
-    private void switchToController(String address, int port) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString("customServerAddress", address);
-        editor.putInt("customServerPort", port);
-        editor.commit();
+    private void switchToController(String address, int port, boolean custom) {
+        if (custom) {
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putString("customServerAddress", address);
+            editor.putInt("customServerPort", port);
+            editor.commit();
+        }
 
         Intent controllerIntent = new Intent(this, ControllerActivity.class);
         controllerIntent.putExtra("address", address);
