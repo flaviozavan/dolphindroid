@@ -12,6 +12,7 @@
         <activity
             android:name=".ConnectionActivity"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,6 +23,7 @@
         <activity
             android:name=".ControllerActivity"
             android:label="@string/title_activity_controller"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar">
         </activity>
     </application>
