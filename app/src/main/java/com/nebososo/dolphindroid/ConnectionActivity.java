@@ -254,7 +254,7 @@ class UdpwiiServer {
         port = (int) ((pbuf[4] & 0xff) << 8) | (int) (pbuf[5] & 0xff);
         name = new String(pbuf, 7, name_len);
         timestamp = System.currentTimeMillis();
-        address = packet.getAddress().toString();
+        address = packet.getAddress().getHostAddress();
     }
 
     static public boolean validatePacket(DatagramPacket packet) {
