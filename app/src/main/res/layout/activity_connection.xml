@@ -14,7 +14,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:id="@+id/server_group"
+            android:id="@+id/group_server"
             android:focusableInTouchMode="false"></RadioGroup>
 
         <LinearLayout
@@ -26,19 +26,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/about"
-                android:id="@+id/about_button" />
+                android:id="@+id/button_about" />
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/custom"
-                android:id="@+id/custom_button" />
+                android:id="@+id/button_custom" />
 
             <Button
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/connect"
-                android:id="@+id/connect_button" />
+                android:id="@+id/button_connect" />
 
         </LinearLayout>
 

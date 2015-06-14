@@ -48,10 +48,10 @@ public class ConnectionActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connection);
 
-        serverGroup = (RadioGroup) findViewById(R.id.server_group);
-        connectButton = (Button) findViewById(R.id.connect_button);
-        aboutButton = (Button) findViewById(R.id.about_button);
-        customButton = (Button) findViewById(R.id.custom_button);
+        serverGroup = (RadioGroup) findViewById(R.id.group_server);
+        connectButton = (Button) findViewById(R.id.button_connect);
+        aboutButton = (Button) findViewById(R.id.button_about);
+        customButton = (Button) findViewById(R.id.button_custom);
 
         settings = getPreferences(MODE_PRIVATE);
 
@@ -63,12 +63,12 @@ public class ConnectionActivity extends Activity {
 
         LayoutInflater inflater = getLayoutInflater();
         final View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
-        final EditText customServerIP =
-                (EditText) customConnectionView.findViewById(R.id.server_ip);
+        final EditText customServerAddress =
+                (EditText) customConnectionView.findViewById(R.id.server_address);
         final EditText customServerPort =
                 (EditText) customConnectionView.findViewById(R.id.server_port);
 
-        customServerIP.setText(settings.getString("customServerIP", ""));
+        customServerAddress.setText(settings.getString("customServerAddress", ""));
         int storedCustomPort = settings.getInt("customServerPort", 0);
         customServerPort.setText(storedCustomPort > 0? Integer.toString(storedCustomPort) : "");
 
@@ -78,9 +78,9 @@ public class ConnectionActivity extends Activity {
         customDialogBuilder.setPositiveButton(R.string.connect, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if (customServerIP.getText().length() > 0
+                if (customServerAddress.getText().length() > 0
                         && customServerPort.getText().length() > 0) {
-                    switchToController(customServerIP.getText().toString(),
+                    switchToController(customServerAddress.getText().toString(),
                             Integer.parseInt(customServerPort.getText().toString()));
                 }
             }
@@ -185,7 +185,7 @@ public class ConnectionActivity extends Activity {
 
     private void switchToController(String address, int port) {
         SharedPreferences.Editor editor = settings.edit();
-        editor.putString("customServerIP", address);
+        editor.putString("customServerAddress", address);
         editor.putInt("customServerPort", port);
         editor.commit();
 
