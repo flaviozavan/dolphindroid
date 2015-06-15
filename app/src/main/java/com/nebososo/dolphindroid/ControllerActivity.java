@@ -1,5 +1,7 @@
 package com.nebososo.dolphindroid;
 
+import android.annotation.SuppressLint;
+import android.support.annotation.NonNull;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,11 +13,8 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -36,29 +35,31 @@ public class ControllerActivity extends Activity implements SensorEventListener 
 
     private long lastBackPress = 0;
     private Toast backToast;
-    private final int totalBackPresses = 3;
-    private final long maxDelayBetweenBackPresses = 500;
+    private static final int totalBackPresses = 3;
+    private static final long maxDelayBetweenBackPresses = 500;
     private int backPresses = 0;
     private PowerManager.WakeLock wl;
     private DatagramSocket udpSocket;
-    private byte[] sendBuffer = new byte[27];
-    private ScheduledExecutorService sendExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final byte[] sendBuffer = new byte[27];
+    private final ScheduledExecutorService sendExecutor = Executors.newSingleThreadScheduledExecutor();
     private DatagramPacket sendPacket;
-    private AtomicButtonMask buttonMask = new AtomicButtonMask();
-    private Map<Integer, Integer> maskMap = new HashMap<>();
-    private AtomicAccelerometerData accelerometer = new AtomicAccelerometerData();
-    private float[] localAccelerometer = new float[3];
+    private final AtomicButtonMask buttonMask = new AtomicButtonMask();
+    private final Map<Integer, Integer> maskMap = new HashMap<>();
+    private final AtomicAccelerometerData accelerometer = new AtomicAccelerometerData();
+    private final float[] localAccelerometer = new float[3];
     private float lastX = 0.f;
     private float lastY = 0.f;
-    private AtomicIRData ir = new AtomicIRData();
-    private float[] localIR = new float[2];
+    private final AtomicIRData ir = new AtomicIRData();
+    private final float[] localIR = new float[2];
 
+    @SuppressLint("ShowToast")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_controller);
         backToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_SHORT);
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        //noinspection deprecation
         wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "dolphindroid");
 
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -72,12 +73,12 @@ public class ControllerActivity extends Activity implements SensorEventListener 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
-                if (action == event.ACTION_MOVE || action == event.ACTION_DOWN) {
+                if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_DOWN) {
                     float ratio = 1.f/Math.max(v.getWidth(), v.getHeight());
                     float x = event.getX() * ratio;
                     float y = event.getY() * ratio;
 
-                    if (action == event.ACTION_MOVE) {
+                    if (action == MotionEvent.ACTION_MOVE) {
                         ir.add(x - lastX, -(y - lastY));                    }
 
                     lastX = x;
@@ -87,7 +88,7 @@ public class ControllerActivity extends Activity implements SensorEventListener 
             }
         });
 
-        maskMap.put(R.id.button_1, 1 << 0);
+        maskMap.put(R.id.button_1, 1);
         maskMap.put(R.id.button_2, 1 << 1);
         maskMap.put(R.id.button_a, 1 << 2);
         maskMap.put(R.id.button_b, 1 << 3);
@@ -225,7 +226,7 @@ public class ControllerActivity extends Activity implements SensorEventListener 
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             long currentTime = System.currentTimeMillis();
 
@@ -267,7 +268,7 @@ class AtomicButtonMask {
 }
 
 class AtomicAccelerometerData {
-    private float v[] = new float[3];
+    private final float[] v = new float[3];
 
     public synchronized void get(float r[]) {
         r[0] = v[0];
@@ -283,7 +284,7 @@ class AtomicAccelerometerData {
 }
 
 class AtomicIRData {
-    private float v[] = new float[2];
+    private final float[] v = new float[2];
 
     public AtomicIRData() {
         v[0] = 0.5f;

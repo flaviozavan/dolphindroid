@@ -1,5 +1,6 @@
 package com.nebososo.dolphindroid;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -9,9 +10,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.EditText;
@@ -21,31 +20,23 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.Vector;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
 public class ConnectionActivity extends Activity {
-    private Button connectButton;
-    private Button aboutButton;
-    private Button customButton;
     private RadioGroup serverGroup;
-    private ActiveServersList activeServers = new ActiveServersList();
-    private Map<Integer, UdpwiiServer> localActiveServersList = new TreeMap<>();
-    private ScheduledExecutorService maintenanceExecutor =
+    private final ActiveServersList activeServers = new ActiveServersList();
+    private final Map<Integer, UdpwiiServer> localActiveServersList = new TreeMap<>();
+    private final ScheduledExecutorService maintenanceExecutor =
             Executors.newSingleThreadScheduledExecutor();
-    private byte[] buffer = new byte[512];
+    private final byte[] buffer = new byte[512];
     private DatagramSocket broadcastSocket;
-    private DatagramPacket broadcastPacket = new DatagramPacket(buffer, buffer.length);
+    private final DatagramPacket broadcastPacket = new DatagramPacket(buffer, buffer.length);
     private SharedPreferences settings;
 
     @Override
@@ -54,9 +45,9 @@ public class ConnectionActivity extends Activity {
         setContentView(R.layout.activity_connection);
 
         serverGroup = (RadioGroup) findViewById(R.id.group_server);
-        connectButton = (Button) findViewById(R.id.button_connect);
-        aboutButton = (Button) findViewById(R.id.button_about);
-        customButton = (Button) findViewById(R.id.button_custom);
+        Button connectButton = (Button) findViewById(R.id.button_connect);
+        Button aboutButton = (Button) findViewById(R.id.button_about);
+        Button customButton = (Button) findViewById(R.id.button_custom);
 
         settings = getPreferences(MODE_PRIVATE);
 
@@ -67,7 +58,8 @@ public class ConnectionActivity extends Activity {
         final AlertDialog aboutDialog = aboutDialogBuilder.create();
 
         LayoutInflater inflater = getLayoutInflater();
-        final View customConnectionView = inflater.inflate(R.layout.custom_connection, null);
+        @SuppressLint("InflateParams") final View customConnectionView = inflater.inflate(
+                R.layout.custom_connection, null);
         final EditText customServerAddress =
                 (EditText) customConnectionView.findViewById(R.id.server_address);
         final EditText customServerPort =
@@ -210,7 +202,7 @@ public class ConnectionActivity extends Activity {
 }
 
 class ActiveServersList {
-    private Map<Integer, UdpwiiServer> activeServers = new TreeMap<Integer, UdpwiiServer>();
+    private final Map<Integer, UdpwiiServer> activeServers = new TreeMap<>();
     private boolean changed = false;
 
     public synchronized void addServer(UdpwiiServer server) {
@@ -248,20 +240,20 @@ class ActiveServersList {
 }
 
 class UdpwiiServer {
-    public int port;
-    public int id;
-    public int index;
-    public String name;
-    public long timestamp;
-    public String address;
+    public final int port;
+    public final int id;
+    public final int index;
+    public final String name;
+    public final long timestamp;
+    public final String address;
 
     public UdpwiiServer(DatagramPacket packet) {
         byte[] pbuf = packet.getData();
-        int name_len = (int) (pbuf[6] & 0xff);
+        int name_len = pbuf[6] & 0xff;
 
-        id = (int) ((pbuf[1] & 0xff) << 8) | (int) (pbuf[2] & 0xff);
+        id = (pbuf[1] & 0xff) << 8 | pbuf[2] & 0xff;
         index = (int) pbuf[3] + 1;
-        port = (int) ((pbuf[4] & 0xff) << 8) | (int) (pbuf[5] & 0xff);
+        port = (pbuf[4] & 0xff) << 8 | pbuf[5] & 0xff;
         name = new String(pbuf, 7, name_len);
         timestamp = System.currentTimeMillis();
         address = packet.getAddress().getHostAddress();
@@ -274,7 +266,7 @@ class UdpwiiServer {
             return false;
         }
 
-        int name_len = (int) (pbuf[6] & 0xff);
+        int name_len = pbuf[6] & 0xff;
         if (packet.getLength() != 7 + name_len) {
             return false;
         }
@@ -287,6 +279,7 @@ class UdpwiiServer {
             return false;
         }
 
+        //noinspection RedundantIfStatement
         if (pbuf[3] < 0 || pbuf[3] > 3) {
             return false;
         }
