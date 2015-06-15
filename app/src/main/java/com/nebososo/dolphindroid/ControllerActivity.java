@@ -3,6 +3,10 @@ package com.nebososo.dolphindroid;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.view.KeyEvent;
@@ -27,7 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public class ControllerActivity extends Activity {
+public class ControllerActivity extends Activity implements SensorEventListener {
 
     private long lastBackPress = 0;
     private Toast backToast;
@@ -41,6 +45,8 @@ public class ControllerActivity extends Activity {
     private DatagramPacket sendPacket;
     private AtomicButtonMask buttonMask = new AtomicButtonMask();
     private Map<Integer, Integer> maskMap = new HashMap<>();
+    private AtomicAccelerometerData accelerometer = new AtomicAccelerometerData();
+    private float[] localAccelerometer = new float[3];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +55,11 @@ public class ControllerActivity extends Activity {
         backToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_SHORT);
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "dolphindroid");
+
+        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sensorManager.registerListener(this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_GAME);
 
         maskMap.put(R.id.button_1, 1 << 0);
         maskMap.put(R.id.button_2, 1 << 1);
@@ -108,11 +119,24 @@ public class ControllerActivity extends Activity {
             @Override
             public void run() {
                 int mask = buttonMask.get();
+                accelerometer.get(localAccelerometer);
 
-                sendBuffer[18] = (byte) (mask & 0xff);
-                sendBuffer[17] = (byte) ((mask >> 8) & 0xff);
-                sendBuffer[16] = (byte) ((mask >> 16) & 0xff);
-                sendBuffer[15] = (byte) ((mask >> 24) & 0xff);
+                int offset = 3;
+                for (int i = 0; i < 3; i++) {
+                    /* Divide by Earth's gravity to get the acceleration in Gs */
+                    int b = (int) ((localAccelerometer[i] / 9.80665f) * 1024.0f * 1024.0f);
+                    sendBuffer[offset+3] = (byte) (b & 0xff);
+                    sendBuffer[offset+2] = (byte) ((b >> 8) & 0xff);
+                    sendBuffer[offset+1] = (byte) ((b >> 16) & 0xff);
+                    sendBuffer[offset] = (byte) ((b >> 24) & 0xff);
+
+                    offset += 4;
+                }
+
+                sendBuffer[offset+3] = (byte) (mask & 0xff);
+                sendBuffer[offset+2] = (byte) ((mask >> 8) & 0xff);
+                sendBuffer[offset+1] = (byte) ((mask >> 16) & 0xff);
+                sendBuffer[offset] = (byte) ((mask >> 24) & 0xff);
 
                 try {
                     udpSocket.send(sendPacket);
@@ -124,6 +148,16 @@ public class ControllerActivity extends Activity {
         };
 
         sendExecutor.scheduleAtFixedRate(sendRunnable, 50, 50, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        accelerometer.set(event.values);
     }
 
     @Override
@@ -190,5 +224,21 @@ class AtomicButtonMask {
 
     public synchronized void xor(int v) {
         mask ^= v;
+    }
+}
+
+class AtomicAccelerometerData {
+    private float v[] = new float[3];
+
+    public synchronized void get(float r[]) {
+        r[0] = v[0];
+        r[1] = v[1];
+        r[2] = v[2];
+    }
+
+    public synchronized void set(float n[]) {
+        v[0] = n[0];
+        v[1] = n[1];
+        v[2] = n[2];
     }
 }
