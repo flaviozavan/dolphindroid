@@ -3,6 +3,7 @@ package com.nebososo.dolphindroid;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.gesture.GestureOverlayView;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -47,6 +48,10 @@ public class ControllerActivity extends Activity implements SensorEventListener 
     private Map<Integer, Integer> maskMap = new HashMap<>();
     private AtomicAccelerometerData accelerometer = new AtomicAccelerometerData();
     private float[] localAccelerometer = new float[3];
+    private float lastX = 0.f;
+    private float lastY = 0.f;
+    private AtomicIRData ir = new AtomicIRData();
+    private float[] localIR = new float[2];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +65,27 @@ public class ControllerActivity extends Activity implements SensorEventListener 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                 SensorManager.SENSOR_DELAY_GAME);
+
+        GestureOverlayView gestureIR = (GestureOverlayView) findViewById(R.id.gesture_ir);
+        System.out.println(gestureIR.getMeasuredWidth() + "x" + gestureIR.getHeight());
+        gestureIR.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                if (action == event.ACTION_MOVE || action == event.ACTION_DOWN) {
+                    float ratio = 1.f/Math.max(v.getWidth(), v.getHeight());
+                    float x = event.getX() * ratio;
+                    float y = event.getY() * ratio;
+
+                    if (action == event.ACTION_MOVE) {
+                        ir.add(x - lastX, -(y - lastY));                    }
+
+                    lastX = x;
+                    lastY = y;
+                }
+                return true;
+            }
+        });
 
         maskMap.put(R.id.button_1, 1 << 0);
         maskMap.put(R.id.button_2, 1 << 1);
@@ -120,11 +146,12 @@ public class ControllerActivity extends Activity implements SensorEventListener 
             public void run() {
                 int mask = buttonMask.get();
                 accelerometer.get(localAccelerometer);
+                ir.get(localIR);
 
                 int offset = 3;
                 for (int i = 0; i < 3; i++) {
                     /* Divide by Earth's gravity to get the acceleration in Gs */
-                    int b = (int) ((localAccelerometer[i] / 9.80665f) * 1024.0f * 1024.0f);
+                    int b = (int) ((localAccelerometer[i] / 9.80665f) * 1024.f * 1024.f);
                     sendBuffer[offset+3] = (byte) (b & 0xff);
                     sendBuffer[offset+2] = (byte) ((b >> 8) & 0xff);
                     sendBuffer[offset+1] = (byte) ((b >> 16) & 0xff);
@@ -137,6 +164,18 @@ public class ControllerActivity extends Activity implements SensorEventListener 
                 sendBuffer[offset+2] = (byte) ((mask >> 8) & 0xff);
                 sendBuffer[offset+1] = (byte) ((mask >> 16) & 0xff);
                 sendBuffer[offset] = (byte) ((mask >> 24) & 0xff);
+                offset += 4;
+
+                for (int i = 0; i < 2; i++) {
+                    int b = (int) (localIR[i] * 1024.f * 1024.f);
+                    sendBuffer[offset+3] = (byte) (b & 0xff);
+                    sendBuffer[offset+2] = (byte) ((b >> 8) & 0xff);
+                    sendBuffer[offset+1] = (byte) ((b >> 16) & 0xff);
+                    sendBuffer[offset] = (byte) ((b >> 24) & 0xff);
+
+                    offset += 4;
+                }
+
 
                 try {
                     udpSocket.send(sendPacket);
@@ -240,5 +279,26 @@ class AtomicAccelerometerData {
         v[0] = n[0];
         v[1] = n[1];
         v[2] = n[2];
+    }
+}
+
+class AtomicIRData {
+    private float v[] = new float[2];
+
+    public AtomicIRData() {
+        v[0] = 0.5f;
+        v[1] = 0.5f;
+    }
+
+    public synchronized void get(float r[]) {
+        r[0] = v[0];
+        r[1] = v[1];
+    }
+
+    public synchronized void add(float x, float y) {
+        v[0] += x;
+        v[0] = Math.max(Math.min(v[0], 1.1f), -1.1f);
+        v[1] += y;
+        v[1] = Math.max(Math.min(v[1], 1.1f), -1.1f);
     }
 }
