@@ -277,8 +277,8 @@ class AtomicAccelerometerData {
     }
 
     public synchronized void set(float n[]) {
-        v[0] = n[0];
-        v[1] = n[1];
+        v[0] = -n[0];
+        v[1] = -n[1];
         v[2] = n[2];
     }
 }
