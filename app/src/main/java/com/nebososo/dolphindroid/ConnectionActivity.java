@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -50,6 +51,12 @@ public class ConnectionActivity extends Activity {
         Button customButton = (Button) findViewById(R.id.button_custom);
 
         settings = getPreferences(MODE_PRIVATE);
+
+        Intent intent = getIntent();
+        final String error = intent.getStringExtra("error");
+        if (error != null) {
+            Toast.makeText(getApplicationContext(), error, Toast.LENGTH_LONG).show();
+        }
 
         AlertDialog.Builder aboutDialogBuilder = new AlertDialog.Builder(this);
         aboutDialogBuilder.setMessage(R.string.about_content);
@@ -109,6 +116,16 @@ public class ConnectionActivity extends Activity {
             }
         });
 
+        startReceivingBroadcasts();
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopReceivingBroadcasts();
+        super.onDestroy();
+    }
+
+    private void startReceivingBroadcasts() {
         try {
             broadcastSocket = new DatagramSocket(4431);
         } catch (SocketException e) {
@@ -142,39 +159,38 @@ public class ConnectionActivity extends Activity {
                     }
                 }
 
-                 runOnUiThread(new Runnable() {
-                     @Override
-                     public void run() {
-                         if (activeServers.getServerListIfChanged(localActiveServersList)) {
-                             int checkedId = serverGroup.getCheckedRadioButtonId();
-                             boolean removed = true;
-                             serverGroup.removeAllViews();
-                             for (Map.Entry<Integer, UdpwiiServer> entry
-                                     : localActiveServersList.entrySet()){
-                                 RadioButton serverRadio = new RadioButton(currentContext);
-                                 serverRadio.setText(entry.getValue().name
-                                         + " " + entry.getValue().index);
-                                 serverRadio.setId(entry.getValue().id);
-                                 serverGroup.addView(serverRadio);
-                                 if (entry.getValue().id == checkedId) {
-                                     removed = false;
-                                 }
-                             }
-                             serverGroup.clearCheck();
-                             if (!removed) {
-                                 serverGroup.check(checkedId);
-                             }
-                         }
-                     }
-                 });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (activeServers.getServerListIfChanged(localActiveServersList)) {
+                            int checkedId = serverGroup.getCheckedRadioButtonId();
+                            boolean removed = true;
+                            serverGroup.removeAllViews();
+                            for (Map.Entry<Integer, UdpwiiServer> entry
+                                    : localActiveServersList.entrySet()){
+                                RadioButton serverRadio = new RadioButton(currentContext);
+                                serverRadio.setText(entry.getValue().name
+                                        + " " + entry.getValue().index);
+                                serverRadio.setId(entry.getValue().id);
+                                serverGroup.addView(serverRadio);
+                                if (entry.getValue().id == checkedId) {
+                                    removed = false;
+                                }
+                            }
+                            serverGroup.clearCheck();
+                            if (!removed) {
+                                serverGroup.check(checkedId);
+                            }
+                        }
+                    }
+                });
             }
         };
         maintenanceExecutor.scheduleAtFixedRate(maintainServerListRunnable, 200, 200,
                 TimeUnit.MILLISECONDS);
     }
 
-    @Override
-    protected void onDestroy() {
+    private void stopReceivingBroadcasts() {
         maintenanceExecutor.shutdown();
         try {
             maintenanceExecutor.awaitTermination(1, TimeUnit.SECONDS);
@@ -182,7 +198,6 @@ public class ConnectionActivity extends Activity {
             e.printStackTrace();
         }
         broadcastSocket.close();
-        super.onDestroy();
     }
 
     private void switchToController(String address, int port, boolean custom) {
@@ -192,6 +207,8 @@ public class ConnectionActivity extends Activity {
             editor.putInt("customServerPort", port);
             editor.commit();
         }
+
+        stopReceivingBroadcasts();
 
         Intent controllerIntent = new Intent(this, ControllerActivity.class);
         controllerIntent.putExtra("address", address);

@@ -119,29 +119,41 @@ public class ControllerActivity extends Activity implements SensorEventListener 
         }
 
         Intent intent = getIntent();
-        String serverAddress = intent.getStringExtra("address");
-        int serverPort = intent.getIntExtra("port", 0);
+        final String serverAddress = intent.getStringExtra("address");
+        final int serverPort = intent.getIntExtra("port", 0);
 
-        try {
-            udpSocket = new DatagramSocket();
-        }
-        catch (SocketException e) {
-            e.printStackTrace();
-        }
+        Runnable setupSendRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    udpSocket = new DatagramSocket();
+                }
+                catch (SocketException e) {
+                    disconnect(getResources().getString(R.string.socket_failed));
+                    return;
+                }
 
-        sendBuffer[0] = (byte) 0xde;
-        /* Accelerometer,buttons and IR */
-        sendBuffer[2] = (byte) 0x7;
+                sendBuffer[0] = (byte) 0xde;
+                /* Accelerometer,buttons and IR */
+                sendBuffer[2] = (byte) 0x7;
 
-        try {
-            sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length,
-                    InetAddress.getByName(serverAddress), serverPort);
-        }
-        catch (UnknownHostException e) {
-            System.out.println(serverAddress);
-            e.printStackTrace();
-        }
+                try {
+                    sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length,
+                            InetAddress.getByName(serverAddress), serverPort);
+                }
+                catch (UnknownHostException e) {
+                    disconnect(getResources().getString(R.string.resolv_failed));
+                    return;
+                }
 
+                scheduleSend();
+            }
+        };
+
+        sendExecutor.schedule(setupSendRunnable, 0, TimeUnit.MILLISECONDS);
+    }
+
+    private void scheduleSend() {
         Runnable sendRunnable = new Runnable() {
             @Override
             public void run() {
@@ -182,12 +194,11 @@ public class ControllerActivity extends Activity implements SensorEventListener 
                     udpSocket.send(sendPacket);
                 }
                 catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         };
 
-        sendExecutor.scheduleAtFixedRate(sendRunnable, 50, 50, TimeUnit.MILLISECONDS);
+        sendExecutor.scheduleAtFixedRate(sendRunnable, 33, 33, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -240,8 +251,7 @@ public class ControllerActivity extends Activity implements SensorEventListener 
 
             if (backPresses == totalBackPresses) {
                 backToast.cancel();
-                startActivity(new Intent(this, ConnectionActivity.class));
-                finish();
+                disconnect(null);
             }
             else {
 
@@ -252,6 +262,15 @@ public class ControllerActivity extends Activity implements SensorEventListener 
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private void disconnect(String errorMessage) {
+        Intent intent = new Intent(this, ConnectionActivity.class);
+        if (errorMessage != null) {
+            intent.putExtra("error", errorMessage);
+        }
+        startActivity(intent);
+        finish();
     }
 }
 

@@ -30,5 +30,8 @@
     <string name="dl">D+L</string>
     <string name="ul">U+L</string>
     <string name="presses_to_go">" more back button presses to disconnect"</string>
+    <string name="resolv_failed">Failed to resolve hostname</string>
+    <string name="socket_failed">Failed to open socket</string>
+
 
 </resources>
