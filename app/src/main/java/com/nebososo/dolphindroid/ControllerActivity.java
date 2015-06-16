@@ -74,7 +74,7 @@ public class ControllerActivity extends Activity implements SensorEventListener 
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
                 if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_DOWN) {
-                    float ratio = 1.f/Math.max(v.getWidth(), v.getHeight());
+                    float ratio = 2.f/Math.max(v.getWidth(), v.getHeight());
                     float x = event.getX() * ratio;
                     float y = event.getY() * ratio;
 
